@@ -1,16 +1,18 @@
-from .config import (ARTI_MOD,
-                     BARB_MOD,
-                     BARD_MOD,
-                     CLER_MOD,
-                     DRUI_MOD,
-                     FIGH_MOD,
-                     MONK_MOD,
-                     PALA_MOD,
-                     RANG_MOD,
-                     ROGU_MOD,
-                     SORC_MOD,
-                     WARL_MOD,
-                     WIZA_MOD)
+from config import (
+    ARTI_MOD,
+    BARB_MOD,
+    BARD_MOD,
+    CLER_MOD,
+    DRUI_MOD,
+    FIGH_MOD,
+    MONK_MOD,
+    PALA_MOD,
+    RANG_MOD,
+    ROGU_MOD,
+    SORC_MOD,
+    WARL_MOD,
+    WIZA_MOD
+)
 
 class BaseClass:
     def __init__(self, name, level, mod):

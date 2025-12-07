@@ -1,0 +1,17 @@
+{
+    "Test": {
+        "Region": "Test",
+        "Cities": [],
+        "POI": []
+    },
+    "Buttland": {
+        "Region": "Buttland",
+        "Cities": [],
+        "POI": []
+    },
+    "Alaska": {
+        "Region": "Alaska",
+        "Cities": [],
+        "POI": []
+    }
+}
