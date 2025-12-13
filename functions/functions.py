@@ -8,14 +8,15 @@ from models.region import *
 from functions.general import (
     show_error,
     load_json,
-    save_json
+    save_json,
+    smart_title
 )
 from config import (
-    SETTINGS_LIST,
     VALID_CLASSES
 )
 
 def add_monster(root, left_frame=None, right_frame=None):
+    #Initiates the pop-up
     popup = tk.Toplevel(root)
     popup.title(f"Add New Monster")
 
@@ -23,52 +24,7 @@ def add_monster(root, left_frame=None, right_frame=None):
                            text="Adding a monster.\nFor Challenge Rating, please put either an integer or a decimal.\n(0.25 instead of 1/4)\nFor Actions, this is the number of (non-legendary action) attacks they get per round")
     instr_label.pack(pady=10)
 
-    def on_submit():
-        name_val = name_entry.get().strip().title()
-        cr_val = cr_entry.get()
-        actions_val = actions_entry.get()
-        count_val = count_entry.get()
-
-        for key, value in [("Name", name_val), ("Challenge Rating", cr_val.strip())]:
-            if value.strip() == "":
-                show_error("Missing a Value.", root)
-                return
-
-        try:
-            actions_val = int(actions_val)
-            if dest_entry.get() == "required":
-                count_val = int(count_val)
-        except ValueError:
-            if dest_entry.get() == "required":
-                show_error("Actions and Count must be non-decimal numbers.", root)
-            else:
-                show_error("Actions must be non-decimal number.", root)
-            return
-
-        try:
-            cr_val = float(cr_val)
-        except ValueError:
-            show_error("Challenge Rating must be a number.", root)
-            return
-
-        monster_list = load_json(f"{dest_entry.get()}.json")
-
-        for mon in monster_list:
-            if mon["name"].lower() == name_val.lower():
-                show_error(f"Monster already exists in {dest_entry.get()}", root)
-                return
-
-        if dest_entry.get() == "required":
-            new_monster = Monster(name_val, cr_val, actions_val, count_val)
-        else:
-            new_monster = Monster(name_val, cr_val, actions_val)
-        new_monster.save_to_file()
-
-        popup.destroy()
-
-    def on_cancel():
-        popup.destroy()
-
+    #Entry Values
     dest_label = tk.Label(popup, text="Destination:")
     dest_label.pack()
     dest_frame = tk.Frame(popup)
@@ -99,20 +55,77 @@ def add_monster(root, left_frame=None, right_frame=None):
     count_label.pack()
     count_entry = tk.Entry(popup)
     count_entry.pack()
-    submit_btn = tk.Button(popup, text="Submit", command=on_submit)
-    submit_btn.pack(pady=10)
-    cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
-    cancel_btn.pack(pady=10)
+
+    def on_submit():
+        #Gets the entered values
+        name_val = name_entry.get().strip().title()
+        cr_val = cr_entry.get()
+        actions_val = actions_entry.get()
+        count_val = count_entry.get()
+        destination = dest_entry.get()
+
+        #Checks if values are blank
+        if destination != "required":
+            for key, value in [("Name", name_val), ("Challenge Rating", cr_val), ("Actions", actions_val)]:
+                if value.strip() == "":
+                    show_error(f"Missing {key}", root)
+                    return
+        else:
+            for key, value in [("Name", name_val), ("Challenge Rating", cr_val), ("Actions", actions_val), ("Count", count_val)]:
+                if value.strip() == "":
+                    show_error(f"Missing {key}", root)
+                    return
+
+        #Validates numbered entries and checks if they're correctly entered, then converts to int/float
+        validation = [
+            ("Actions", actions_val, int, "Actions must be a non-decimal number."),
+            ("Challenge Rating", cr_val, float, "Challenge Rating must be a number."),
+        ]
+        if destination == "required":
+            validation.append(("Count", count_val, int, "Count must be a non-decimal number."))
+        converted = {}
+        for key, value, cast, error_msg in validation:
+            try:
+                converted[key] = cast(value)
+            except ValueError:
+                show_error(error_msg, root)
+                return
+
+        #Double checks for duplicates
+        monster_list = load_json(f"{destination}.json")
+        for mon in monster_list:
+            if mon["name"].lower() == name_val.lower():
+                show_error(f"Monster already exists in {destination}", root)
+                return
+
+        #Creates the new monster class
+        if destination == "required":
+            new_monster = Monster(name_val, cr_val, actions_val, count_val)
+        else:
+            new_monster = Monster(name_val, cr_val, actions_val)
+        new_monster.save_to_file(destination)
+
+        #Closes popup and reloads page with new info
+        popup.destroy()
+        if left_frame and right_frame:
+            from functions.pages import manage_bestiary_page
+            manage_bestiary_page(root, left_frame, right_frame)
+
+    #Command buttons
+    tk.Button(popup, text="Submit", command=on_submit).pack(pady=10)
+    tk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
 
     popup.grab_set()
     root.wait_window(popup)
 
 def delete_monster(root, left_frame=None, right_frame=None):
+    #Initiates the pop-up
     popup = tk.Toplevel(root)
     popup.title(f"Delete Monster")
 
     tk.Label(popup, text=f"Select from where").pack(pady=10)
 
+    #Sets radio buttons to select where you want to send the monster to, detecting which
     valid_sources = ["required", "random", "archive"]
     source_var = tk.StringVar(value=valid_sources[0])
 
@@ -128,25 +141,18 @@ def delete_monster(root, left_frame=None, right_frame=None):
         ).pack(anchor="w")
 
     def go_to_monster_selection():
+        #Sets up the source (from) and delete previous pop-up. Checks if the source has any information to transfer
         source = source_var.get()
-
-        if not source:
-            show_error("Please select a source list.", root)
-            return
-
         for w in popup.winfo_children():
             w.destroy()
 
         monsters = load_json(f"{source}.json")
-
         if not monsters:
             show_error(f"No monsters found in {source}.", root)
             popup.destroy()
             return
 
         tk.Label(popup, text=f"Select a monster to move from {source.title()}:").pack(pady=10)
-
-        monsters = load_json(f"{source}.json")
 
         monster_var = tk.StringVar(value=monsters[0]["name"])
 
@@ -182,16 +188,20 @@ def delete_monster(root, left_frame=None, right_frame=None):
             show_error(f"{chosen_name} removed from {source}.", root)
 
             if left_frame and right_frame:
-                for widget in right_frame.winfo_children():
-                    widget.destroy()
                 from functions.pages import manage_bestiary_page
                 manage_bestiary_page(root, left_frame, right_frame)
 
         tk.Button(popup, text="Confirm", command=finish_delete).pack(pady=10)
         tk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
 
+        popup.grab_set()
+        root.wait_window(popup)
+
     tk.Button(popup, text="Next", command=go_to_monster_selection).pack(pady=10)
     tk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
+
+    popup.grab_set()
+    root.wait_window(popup)
 
 def move_monster(root, to_location, left_frame=None, right_frame=None):
     popup = tk.Toplevel(root)
@@ -228,6 +238,11 @@ def move_monster(root, to_location, left_frame=None, right_frame=None):
         tk.Label(popup, text=f"Select a monster to move from {source.title()}:").pack(pady=10)
 
         monsters = load_json(f"{source}.json")
+
+        if not monsters:
+            popup.destroy()
+            show_error("Chosen repository is empty.", root)
+            return
 
         monster_var = tk.StringVar(value=monsters[0]["name"])
 
@@ -291,7 +306,7 @@ def move_monster(root, to_location, left_frame=None, right_frame=None):
 
             temp_flag = config.bestiary_flag
             config.bestiary_flag = to_location
-            new_mon.save_to_file()
+            new_mon.save_to_file(to_location)
             config.bestiary_flag = temp_flag
 
             popup.destroy()
@@ -306,8 +321,14 @@ def move_monster(root, to_location, left_frame=None, right_frame=None):
         tk.Button(popup, text="Transfer", command=finish_transfer).pack(pady=10)
         tk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
 
+        popup.grab_set()
+        root.wait_window(popup)
+
     tk.Button(popup, text="Next", command=go_to_monster_selection).pack(pady=10)
     tk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
+
+    popup.grab_set()
+    root.wait_window(popup)
 
 def adjust_setting(root, left_frame=None, right_frame=None):
     popup = tk.Toplevel(root)
@@ -573,6 +594,9 @@ def delete_member(root, left_frame=None, right_frame=None):
     cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
     cancel_btn.pack(pady=10)
 
+    popup.grab_set()
+    root.wait_window(popup)
+
 def update_member(root, left_frame=None, right_frame=None):
     popup = tk.Toplevel(root)
     popup.title("Update Party Member")
@@ -762,6 +786,9 @@ def update_member(root, left_frame=None, right_frame=None):
     cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
     cancel_btn.pack(pady=10)
 
+    popup.grab_set()
+    root.wait_window(popup)
+
 def move_member(root, left_frame=None, right_frame=None):
     if config.party_flag == "Active":
         from_var = "Active"
@@ -826,6 +853,9 @@ def move_member(root, left_frame=None, right_frame=None):
 
     tk.Button(popup, text="Submit", command=on_submit).pack(pady=10)
     tk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
+
+    popup.grab_set()
+    root.wait_window(popup)
 
 def add_new_region(root, left_frame=None, right_frame=None):
     popup = tk.Toplevel(root)
@@ -926,6 +956,9 @@ def remove_region(root, left_frame=None, right_frame=None):
     cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
     cancel_btn.pack(pady=10)
 
+    popup.grab_set()
+    root.wait_window(popup)
+
 def add_note(section, root, left_frame=None, right_frame=None):
     popup = tk.Toplevel(root)
     popup.title(f"Add {section} Note")
@@ -942,37 +975,18 @@ def add_note(section, root, left_frame=None, right_frame=None):
             show_error("Please insert a note.", root)
             return
 
-        data = load_json("regions.json")
-
         if config.last_flag == "Regions":
             region_name = section
         else:
             region_name = config.last_flag
 
-        if region_name not in data:
-            show_error(f"{region_name} does not exist.", root)
-
-        region_entry = data[region_name]
+        region = Region.load_from_file(region_name)
         target_name = section
 
         if target_name == region_name:
-            notes_list = region_entry["Notes"]
-            note_id = len(notes_list) + 1
-            notes_list.append({"id": note_id, "note": note_text})
-            save_json("regions.json", data)
+            region.add_note(note_text)
         else:
-            for city in region_entry["Cities"]:
-                if city["City"] == target_name:
-                    notes_list = city["Notes"]
-                    note_id = len(notes_list) + 1
-                    notes_list.append({"id": note_id, "note": note_text})
-                    save_json("regions.json", data)
-            for poi in region_entry["POI"]:
-                if poi["Point of Interest"] == target_name:
-                    notes_list = poi["Notes"]
-                    note_id = len(notes_list) + 1
-                    notes_list.append({"id": note_id, "note": note_text})
-                    save_json("regions.json", data)
+            pass
         popup.destroy()
 
         if left_frame and right_frame:
@@ -987,104 +1001,58 @@ def add_note(section, root, left_frame=None, right_frame=None):
     submit_btn.pack(pady=10)
     cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
     cancel_btn.pack(pady=10)
+
+    popup.grab_set()
+    root.wait_window(popup)
     
 def delete_note(section, root, left_frame=None, right_frame=None):
+    if config.last_flag == "Regions":
+        region_name = section
+    else:
+        region_name = config.last_flag
+
+    region = Region.load_from_file(region_name)
+
+    if section == region_name:
+        notes = region.notes
+    else:
+        notes = []
+        for city in region.cities:
+            if city.name == section:
+                notes = city.notes
+                break
+        for poi in region["POI"]:
+            if poi.name == section:
+                notes = poi.notes
+                break
+
+    if not notes:
+        show_error("No notes found.", root)
+        return
+
     popup = tk.Toplevel(root)
     popup.title(f"Delete {section} note.")
 
     instr_label = tk.Label(popup, text=f"Delete Note from {section}")
     instr_label.pack(pady=10)
 
-    if config.last_flag == "Regions":
-        region_name = section
-    else:
-        region_name = config.last_flag
-    data = load_json("regions.json")
-    region_entry = data[region_name]
-
     def on_submit():
-        if region_name not in data:
-            show_error(f"Region {region_name} does not exist.", root)
-            return
-
         target_name = section
+        note_to_delete = note_id.get()
 
         if target_name == region_name:
-            notes_list = region_entry["Notes"]
-            note_to_delete = note_id.get()
+            region.delete_note(note_to_delete)
 
-            notes_list = [n for n in notes_list if int(n["id"]) != note_to_delete]
-
-            for i, n in enumerate(notes_list, 1):
-                n["id"] = i
-
-            region_entry["Notes"] = notes_list
-            save_json("regions.json", data)
             popup.destroy()
-
             if left_frame and right_frame:
                 from functions.pages import dynamic_page_loader
                 label = config.button_flag
                 dynamic_page_loader(label, root, left_frame, right_frame)
             return
-        for city in region_entry["Cities"]:
-            if city["City"] == target_name:
-                notes_list = city["Notes"]
-                note_to_delete = note_id.get()
-
-                notes_list = [n for n in notes_list if int(n["id"]) != note_to_delete]
-
-                for i, n in enumerate(notes_list, 1):
-                    n["id"] = i
-
-                city["Notes"] = notes_list
-                save_json("regions.json", data)
-                popup.destroy()
-
-                if left_frame and right_frame:
-                    from functions.pages import dynamic_page_loader
-                    label = config.button_flag
-                    dynamic_page_loader(label, root, left_frame, right_frame)
-                return
-
-        for poi in region_entry["POI"]:
-            if poi["Point of Interest"] == target_name:
-                notes_list = poi["Notes"]
-                note_to_delete = note_id.get()
-
-                notes_list = [n for n in notes_list if int(n["id"]) != note_to_delete]
-
-                for i, n in enumerate(notes_list, 1):
-                    n["id"] = i
-
-                poi["Notes"] = notes_list
-                save_json("regions.json", data)
-                popup.destroy()
-
-                if left_frame and right_frame:
-                    from functions.pages import dynamic_page_loader
-                    label = config.button_flag
-                    dynamic_page_loader(label, root, left_frame, right_frame)
-                return
+        return
 
     def on_cancel():
         popup.destroy()
-
-    if section == region_name:
-        notes = region_entry["Notes"]
-    else:
-        notes = []
-        for city in region_entry["Cities"]:
-            if city["City"] == section:
-                notes = city["Notes"]
-                break
-        for poi in region_entry["POI"]:
-            if poi["Point of Interest"] == section:
-                notes = poi["Notes"]
-                break
-
-    if not notes:
-        show_error("No notes found.", root)
 
     note_frame = tk.Frame(popup)
     note_frame.pack(pady=10)
@@ -1107,15 +1075,21 @@ def delete_note(section, root, left_frame=None, right_frame=None):
     cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
     cancel_btn.pack(pady=10)
 
+    popup.grab_set()
+    root.wait_window(popup)
+
 def add_type(section, section_type, root, left_frame=None, right_frame=None):
-    if section_type == "city":
-        descrip = section_type
-        json_entry = "Cities"
-        addition = "City"
-    elif section_type == "poi":
-        descrip = "point of interest"
-        json_entry = "POI"
-        addition = "Point of Interest"
+    type_map = {
+        "city": City,
+        "poi": PointOfInterest
+    }
+
+    if section_type not in type_map:
+        show_error(f"Unknown section type: {section_type}", root)
+        return
+
+    ChildClass = type_map[section_type]
+    descrip = section_type if section_type != "poi" else "point of interest"
 
     popup = tk.Toplevel(root)
     popup.title(f"Add {descrip} to {section}")
@@ -1123,80 +1097,29 @@ def add_type(section, section_type, root, left_frame=None, right_frame=None):
     instr_label = tk.Label(popup, text=f"Add {descrip} to {section}")
     instr_label.pack(pady=10)
 
-    def on_submit():
-        name_val = name_entry.get().strip().title()
-        if not name_val:
-            show_error("Please insert a name.", root)
-            return
-
-        data = load_json("regions.json")
-
-        region_entry = data[section]
-
-        region_entry[json_entry].append({
-            addition: name_val,
-            "POI": [],
-            "Notes": []
-        })
-
-        save_json("regions.json", data)
-        popup.destroy()
-
-        if left_frame and right_frame:
-            from functions.pages import dynamic_page_loader
-            label = config.button_flag
-            dynamic_page_loader(label, root, left_frame, right_frame)
-
-    def on_cancel():
-        popup.destroy()
-
     name_label = tk.Label(popup, text="Name:")
     name_label.pack()
     name_entry = tk.Entry(popup)
     name_entry.pack()
-
-    submit_btn = tk.Button(popup, text="Submit", command=on_submit)
-    submit_btn.pack(pady=10)
-    cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
-    cancel_btn.pack(pady=10)
-
-def remove_type(section, section_type, root, left_frame=None, right_frame=None):
-    if section_type == "city":
-        descrip = section_type
-        json_entry = "Cities"
-        removal = "City"
-    elif section_type == "poi":
-        descrip = "point of interest"
-        json_entry = "POI"
-        removal = "Point of Interest"
-    popup = tk.Toplevel(root)
-    popup.title(f"Remove {descrip} from {section}")
-
-    instr_label = tk.Label(popup,
-                           text=f"Select which {descrip} you wish to delete.\nThis is a permanent action, and will delete ALL information included in that region!")
-    instr_label.pack(pady=10)
-
-    data = load_json("regions.json")
-
-    if not data:
-        show_error("No regions available to delete.", root)
-        return
-
-    region_entry = data[section]
-    locations = region_entry.get(json_entry, [])
-
-    if not locations:
-        show_error("No locations", root)
-        return
+    name_entry.focus_set()
 
     def on_submit():
-        name_val = name_entry.get()
+        name_val = smart_title(name_entry.get())
+        if not name_val:
+            show_error("Please insert a name.", root)
+            return
 
-        region_entry[json_entry] = [
-            l for l in locations if l[removal] != name_val
-        ]
+        region = Region.load_from_file(section)
 
-        save_json("regions.json", data)
+        child_obj = ChildClass(name_val)
+
+        if section_type == "city":
+            region.add_city(child_obj)
+        elif section_type == "poi":
+            region.add_poi(child_obj)
+
+        region.save_to_file()
+
         popup.destroy()
 
         if left_frame and right_frame:
@@ -1207,25 +1130,86 @@ def remove_type(section, section_type, root, left_frame=None, right_frame=None):
     def on_cancel():
         popup.destroy()
 
-    name_label = tk.Label(popup, text=f"Choose a {descrip}:")
-    name_label.pack()
-    names_frame = tk.Frame(popup)
-    names_frame.pack()
-    name_entry = tk.StringVar(popup)
-    name_entry.set(locations[0][removal])
-
-    for location in locations:
-        rb = tk.Radiobutton(
-            names_frame,
-            text=location[removal],
-            variable=name_entry,
-            value=location[removal]
-        )
-        rb.pack(anchor="w")
     submit_btn = tk.Button(popup, text="Submit", command=on_submit)
     submit_btn.pack(pady=10)
     cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
     cancel_btn.pack(pady=10)
+
+    popup.grab_set()
+    root.wait_window(popup)
+
+def remove_type(section, section_type, root, left_frame=None, right_frame=None):
+    type_map = {
+        "city": {
+            "label": "city",
+            "list_attr": "cities",
+            "delete": "delete_city"
+        },
+        "poi": {
+            "label": "point of interest",
+            "list_attr": "poi",
+            "delete": "delete_poi"
+        }
+    }
+
+    if section_type not in type_map:
+        show_error(f"Unknown section type: {section_type}", root)
+        return
+
+    cfg = type_map[section_type]
+
+    region = Region.load_from_file(section)
+    locations = getattr(region, cfg['list_attr'])
+
+    if not locations:
+        show_error(f"No locations found for {section}", root)
+        return
+
+    popup = tk.Toplevel(root)
+    popup.title(f"Remove {cfg['label']} from {section}")
+
+    instr_label = tk.Label(popup,
+                           text=f"Select which {cfg['label']} you wish to delete.\nThis is a permanent action, and will delete ALL information included in that region!")
+    instr_label.pack(pady=10)
+
+    region = Region.load_from_file(section)
+    locations = getattr(region, cfg['list_attr'])
+
+    name_var = tk.StringVar(popup)
+    name_var.set(locations[0].name)
+
+    names_frame = tk.Frame(popup)
+    names_frame.pack(pady=10)
+
+    for loc in locations:
+        rb = tk.Radiobutton(
+            names_frame,
+            text=loc.name,
+            variable=name_var,
+            value=loc.name
+        )
+        rb.pack(anchor="w")
+
+    def on_submit():
+        delete_func = getattr(region, cfg['delete'])
+        delete_func(name_var.get())
+
+        popup.destroy()
+
+        if left_frame and right_frame:
+            from functions.pages import dynamic_page_loader
+            dynamic_page_loader(config.button_flag, root, left_frame, right_frame)
+
+    def on_cancel():
+        popup.destroy()
+
+    submit_btn = tk.Button(popup, text="Submit", command=on_submit)
+    submit_btn.pack(pady=10)
+    cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
+    cancel_btn.pack(pady=10)
+
+    popup.grab_set()
+    root.wait_window(popup)
 
 def reset_settings(root, left_frame=None, right_frame=None):
     popup = tk.Toplevel(root)
@@ -1265,3 +1249,6 @@ def reset_settings(root, left_frame=None, right_frame=None):
     submit_btn.pack(pady=10)
     cancel_btn = tk.Button(popup, text="Cancel", command=on_cancel)
     cancel_btn.pack(pady=10)
+
+    popup.grab_set()
+    root.wait_window(popup)

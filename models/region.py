@@ -1,7 +1,6 @@
 from functions.general import (
     save_json,
-    load_json,
-    show_error
+    load_json
 )
 
 class LocationBase:
@@ -93,8 +92,22 @@ class Region:
         region_data = data[name]
         region = cls(name)
 
-        region.notes = region_data("Notes", [])
+        region.notes = region_data.get("Notes", [])
+        for city_data in region_data.get("Cities", []):
+            city = City(city_data["City"])
+            city.information = city_data.get("Information", "")
+            city.poi = city_data.get("Places of Interest", [])
+            city.shops = city_data.get("Shops", [])
+            city.notes = city_data.get("Notes", [])
+            region.add_city(city)
 
+        for poi_data in region_data.get("POI", []):
+            poi = PointOfInterest(poi_data["Point of Interest"])
+            poi.information = poi_data.get("Information", "")
+            poi.theme = poi_data.get("Theme", "")
+            poi.effects = poi_data.get("Effects", [])
+            poi.notes = poi_data.get("Notes", [])
+            region.add_poi(poi)
         return region
 
     def add_city(self, city: City):
@@ -107,13 +120,27 @@ class Region:
             raise TypeError("Expected POI Instance")
         self.poi.append(poi)
 
+    def delete_city(self, city_name: str):
+        self.cities = [c for c in self.cities if c.name != city_name]
+        self.save_to_file()
+
+    def delete_poi(self, poi_name: str):
+        self.poi = [p for p in self.poi if p.name != poi_name]
+        self.save_to_file()
+
     def add_note(self, note: str):
         note_id = len(self.notes) + 1
         self.notes.append({"id": note_id, "note": note})
+        self.save_to_file()
 
     def reindex_notes(self):
         for i, note in enumerate(self.notes, start=1):
             note["id"] = i
+
+    def delete_note(self, note_to_delete: int):
+        self.notes = [n for n in self.notes if int(n["id"]) != note_to_delete]
+        self.reindex_notes()
+        self.save_to_file()
 
     def to_dict(self):
         return {

@@ -1,6 +1,7 @@
 import tkinter as tk
 import config
 
+from models.region import *
 from config import (
     BUTTON_PACK_OPTIONS,
     REGIONS_BUTTON_LABELS,
@@ -43,7 +44,6 @@ def create_scrollable_frame(parent):
 
     return scroll_frame
 
-
 def initiate_page(root, left_scroll_frame, header_text, placeholder_text):
     clear_widgets(left_scroll_frame)
 
@@ -75,9 +75,7 @@ def generate_buttons(root, left_scroll_frame, right_scroll_frame):
     items_to_list = []
     current = config.button_flag
 
-    if config.button_flag == "Regions":
-        items_to_list = list(data.keys())
-    elif config.nav_stack[-2] == "Regions":
+    if config.nav_stack [-1] == "Regions" or config.nav_stack[-2] == "Regions":
         region_data = data[current]
         items_to_list = [c["City"] for c in region_data["Cities"]]
         items_to_list += [p["Point of Interest"] for p in region_data["POI"]]
@@ -88,6 +86,8 @@ def generate_buttons(root, left_scroll_frame, right_scroll_frame):
             region_data = next(c for c in data[region_name]["Cities"] if c["City"] == name)
         elif item_type == "POI":
             region_data = next(p for p in data[region_name]["POI"] if p["Point of Interest"] == name)
+    elif config.nav_stack[-4] == "Regions":
+        pass
 
         items_to_list = [c["City"] for c in region_data["Cities"]]
         items_to_list += [p["Point of Interest"] for p in region_data["POI"]]

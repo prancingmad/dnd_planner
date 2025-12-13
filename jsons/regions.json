@@ -1,8 +1,26 @@
 {
     "California": {
         "Region": "California",
-        "Cities": [],
-        "POI": [],
+        "Cities": [
+            {
+                "City": "Los Angeles",
+                "Information": "",
+                "Places of Interest": [],
+                "Shops": [],
+                "Persons of Interest": [],
+                "Notes": []
+            }
+        ],
+        "POI": [
+            {
+                "Point of Interest": "Jon's Cave",
+                "Information": "",
+                "Theme": "",
+                "Effects": [],
+                "Persons of Interest": [],
+                "Notes": []
+            }
+        ],
         "Notes": []
     }
 }

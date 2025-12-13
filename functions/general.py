@@ -121,3 +121,16 @@ def find_category(name, data):
                 return "Note"
 
     return None  # Not found
+
+def smart_title(text: str) -> str:
+    words = text.strip().split()
+    result = []
+
+    for word in words:
+        if "'s" in word.lower():
+            base, _, rest = word.partition("'")
+            result.append(base.capitalize() + "'s" + rest[2:])
+        else:
+            result.append(word.capitalize())
+
+    return " ".join(result)
