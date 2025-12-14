@@ -11,6 +11,9 @@ from functions.general import (
     save_json,
     smart_title
 )
+from functions.gui import (
+    create_scrollable_frame
+)
 from config import (
     VALID_CLASSES
 )
@@ -271,12 +274,14 @@ def move_monster(root, to_location, left_frame=None, right_frame=None):
             count_entry.pack()
 
         def finish_transfer():
+            #Check for monster entry
             chosen_name = monster_var.get()
 
             if not chosen_name:
                 show_error("Please select a monster.", root)
                 return
 
+            #Check for transfer list
             source_list = load_json(f"{source}.json")
 
             transferred = next(
@@ -288,6 +293,7 @@ def move_monster(root, to_location, left_frame=None, right_frame=None):
                 show_error(f"{chosen_name} not found in {source}.", root)
                 return
 
+            #If moving to required, add the count
             if to_location == "required":
                 try:
                     count_val = int(count_entry.get())
@@ -297,14 +303,17 @@ def move_monster(root, to_location, left_frame=None, right_frame=None):
             else:
                 count_val = None
 
+            #Check for duplicates
             target_list = load_json(f"{to_location}.json")
 
             if any(m["name"].lower() == chosen_name.lower() for m in target_list):
                 show_error(f"{chosen_name} already exists in {to_location}.", root)
 
+            #Remove the creature from the source list
             source_list.remove(transferred)
             save_json(f"{source}.json", source_list)
 
+            #Add the creature to the transfer source
             new_mon = Monster(
                 transferred["name"],
                 transferred["challenge_rating"],
@@ -317,6 +326,7 @@ def move_monster(root, to_location, left_frame=None, right_frame=None):
             new_mon.save_to_file(to_location)
             config.bestiary_flag = temp_flag
 
+            #Cleanup and reload page
             popup.destroy()
             show_error(f"{chosen_name} moved from {source} to {to_location}.", root)
 
@@ -326,12 +336,14 @@ def move_monster(root, to_location, left_frame=None, right_frame=None):
                 from functions.pages import manage_bestiary_page
                 manage_bestiary_page(root, left_frame, right_frame)
 
+        #Command buttons for the second part of the functions
         tk.Button(popup, text="Transfer", command=finish_transfer).pack(pady=10)
         tk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
 
         popup.grab_set()
         root.wait_window(popup)
 
+    #Command buttons for the first part of the function
     tk.Button(popup, text="Next", command=go_to_monster_selection).pack(pady=10)
     tk.Button(popup, text="Cancel", command=popup.destroy).pack(pady=10)
 
@@ -339,6 +351,7 @@ def move_monster(root, to_location, left_frame=None, right_frame=None):
     root.wait_window(popup)
 
 def adjust_setting(root, left_frame=None, right_frame=None):
+    #Load the popup for the function
     popup = tk.Toplevel(root)
     popup.title("Adjust Settings")
 
@@ -351,27 +364,11 @@ def adjust_setting(root, left_frame=None, right_frame=None):
     )
     instr_label.pack(pady=10)
 
-    container = tk.Frame(popup)
-    container.pack(fill="both", expand=True)
+    scroll_frame = create_scrollable_frame(popup)
 
-    canvas = tk.Canvas(container)
-    canvas.pack(side="left", fill="both", expand=True)
-
-    scrollbar = tk.Scrollbar(container, orient="vertical", command=canvas.yview)
-    scrollbar.pack(side="right", fill="y")
-
-    canvas.configure(yscrollcommand=scrollbar.set)
-
-    form_frame = tk.Frame(canvas)
-    canvas.create_window((0, 0), window=form_frame, anchor="nw")
-
-    form_frame.bind(
-        "<Configure>",
-        lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-    )
-
+    #Fill the frame with the settings
     for setting, value in settings_data.items():
-        row = tk.Frame(form_frame)
+        row = tk.Frame(scroll_frame)
         row.pack(fill="x", pady=2)
 
         label = tk.Label(row, text=f"{setting}:", width=20, anchor="w")
