@@ -249,3 +249,26 @@ def check_unique(name, jsons, level, context, popup, parent_name=None):
                     show_error(f"{name} already exists.", popup)
                     return False
     return True
+
+def validate_and_convert(to_list, root):
+    converted_list = []
+    for num, key, name in to_list:
+        if not num:
+            show_error("Missing entry", root)
+            return None
+        try:
+            converted = key(num)
+        except (ValueError, TypeError):
+            if key == float:
+                show_error(f"{name} must be a positive number.", root)
+                return None
+            if key == int:
+                show_error(f"{name} must be a positive, non-decimal number.", root)
+                return None
+        else:
+            if key == int or key == float:
+                if converted < 0:
+                    show_error(f"{name} must be a positive number.", root)
+                    return None
+            converted_list.append(converted)
+    return converted_list

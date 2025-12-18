@@ -12,7 +12,8 @@ from functions.general import (
     find_category,
     type_flags,
     recalculate_combat_values,
-    check_unique
+    check_unique,
+    validate_and_convert
 )
 from functions.gui import (
     create_scrollable_frame,
@@ -68,32 +69,18 @@ def add_monster(root, left_frame=None, right_frame=None):
         count_val = values["count"].get()
         destination = values["dest"].get()
 
-        #Checks if values are blank
-        if destination != "required":
-            for key, value in [("Name", name_val), ("Challenge Rating", cr_val), ("Actions", actions_val)]:
-                if value.strip() == "":
-                    show_error(f"Missing {key}", root)
-                    return
-        else:
-            for key, value in [("Name", name_val), ("Challenge Rating", cr_val), ("Actions", actions_val), ("Count", count_val)]:
-                if value.strip() == "":
-                    show_error(f"Missing {key}", root)
-                    return
-
-        #Validates numbered entries and checks if they're correctly entered, then converts to int/float
-        validation = [
-            ("Actions", actions_val, int, "Actions must be a non-decimal number."),
-            ("Challenge Rating", cr_val, float, "Challenge Rating must be a number."),
-        ]
         if destination == "required":
-            validation.append(("Count", count_val, int, "Count must be a non-decimal number."))
-        converted = {}
-        for key, value, cast, error_msg in validation:
-            try:
-                converted[key] = cast(value)
-            except ValueError:
-                show_error(error_msg, root)
+            validation_list = [(name_val, str, "Name"), (cr_val, int, "Challenge Rating"), (actions_val, int, "Actions"), (count_val, int, "Encounter Count"), (destination, str, "Destination")]
+            checked = validate_and_convert(validation_list, root)
+            if not checked:
                 return
+            name_val, cr_val, actions_val, count_val, destination = checked
+        else:
+            validation_list = [(name_val, str), (cr_val, int), (actions_val, int), (destination, str)]
+            checked = validate_and_convert(validation_list, root)
+            if not checked:
+                return
+            name_val, cr_val, actions_val, destination = checked
 
         #Double checks for duplicates
         flag = check_unique(name_val, ("archive.json", "required.json", "random.json"), None, "name", popup)

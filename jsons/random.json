@@ -3,5 +3,10 @@
         "name": "Test 2",
         "challenge_rating": "1",
         "actions": "1"
+    },
+    {
+        "name": "Bill",
+        "challenge_rating": 1,
+        "actions": 1
     }
 ]
