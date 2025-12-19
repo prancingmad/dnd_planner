@@ -254,8 +254,10 @@ def validate_and_convert(to_list, req_flag, root):
     converted_list = []
     for num, key, name in to_list:
         if not num and req_flag:
-            show_error("Missing entry", root)
+            show_error(f"Missing {name}", root)
             return None
+        elif not num and not req_flag:
+            continue
         try:
             converted = key(num)
         except (ValueError, TypeError):

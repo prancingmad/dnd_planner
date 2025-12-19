@@ -1,10 +1,10 @@
 [
     {
-        "name": "Test 1",
-        "status": "Player",
+        "name": "Test",
+        "status": "NPC",
         "armor_class": 1,
         "magic_items": 1,
-        "combat_value": -4.9,
+        "combat_value": 1.1,
         "actions": 1.5,
         "classes": [
             {
@@ -14,15 +14,15 @@
         ]
     },
     {
-        "name": "Test Npc",
-        "status": "NPC",
-        "armor_class": 1,
+        "name": "Billy",
+        "status": "Player",
+        "armor_class": 10,
         "magic_items": 1,
         "combat_value": 1.1,
         "actions": 1.5,
         "classes": [
             {
-                "name": "Bard",
+                "name": "Firefighter",
                 "level": 1
             }
         ]

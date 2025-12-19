@@ -214,10 +214,15 @@ def generate_encounter(root, left_frame=None, right_frame=None):
     encounter_popup.title = "Suggested Encounter"
 
     scroll_frame = create_scrollable_frame(encounter_popup)
-    for mon in generated_encounter:
-        mon_text = f"{mon['name']} - Challenge Rating: {mon['challenge_rating']}"
-        label = tk.Label(scroll_frame, text=mon_text, anchor="w", justify="left")
-        label.pack(fill="x", pady=2)
+
+    if not generated_encounter:
+        error_text = "No Required monsters, and Random monsters are too strong for the current party!"
+        label = tk.label(scroll_frame, text=error_text, anchor="w", justify="left")
+    else:
+        for mon in generated_encounter:
+            mon_text = f"{mon['name']} - Challenge Rating: {mon['challenge_rating']}"
+            label = tk.Label(scroll_frame, text=mon_text, anchor="w", justify="left")
+            label.pack(fill="x", pady=2)
 
     button_frame = tk.Frame(encounter_popup)
     button_frame.pack(side="bottom", pady=10)
@@ -225,7 +230,6 @@ def generate_encounter(root, left_frame=None, right_frame=None):
     okay_btn = tk.Button(button_frame, text="OK", command=encounter_popup.destroy)
     okay_btn.pack(pady=10)
 
-    encounter_popup.grab_set()
     root.wait_window(encounter_popup)
 
 def generate_individual_loot(root, challenge_rating, left_frame=None, right_frame=None):
@@ -297,7 +301,6 @@ def generate_individual_loot(root, challenge_rating, left_frame=None, right_fram
     okay_btn = tk.Button(button_frame, text="OK", command=treasure_popup.destroy)
     okay_btn.pack(pady=10)
 
-    treasure_popup.grab_set()
     root.wait_window(treasure_popup)
 
 def generate_treasure_hoard(root, challenge_rating, left_frame=None, right_frame=None):
@@ -647,5 +650,4 @@ def generate_treasure_hoard(root, challenge_rating, left_frame=None, right_frame
     okay_btn = tk.Button(button_frame, text="OK", command=treasure_popup.destroy)
     okay_btn.pack(pady=10)
 
-    treasure_popup.grab_set()
     root.wait_window(treasure_popup)

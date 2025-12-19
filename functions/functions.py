@@ -71,12 +71,12 @@ def add_monster(root, left_frame=None, right_frame=None):
 
         if destination == "required":
             validation_list = [(name_val, str, "Name"), (cr_val, int, "Challenge Rating"), (actions_val, int, "Actions"), (count_val, int, "Encounter Count"), (destination, str, "Destination")]
-            checked = validate_and_convert(validation_list, root)
+            checked = validate_and_convert(validation_list, True, root)
             if not checked:
                 return
             name_val, cr_val, actions_val, count_val, destination = checked
         else:
-            validation_list = [(name_val, str), (cr_val, int), (actions_val, int), (destination, str)]
+            validation_list = [(name_val, str, "Name"), (cr_val, int, "Challenge Rating"), (actions_val, int, "Actions"), (destination, str, "Destination")]
             checked = validate_and_convert(validation_list, True, root)
             if not checked:
                 return
@@ -295,7 +295,6 @@ def adjust_setting(root, left_frame=None, right_frame=None):
     settings_data = load_json("settings.json")
     entry_widgets = {}
 
-
     #Fill the frame with the settings
     for setting, value in settings_data.items():
         row = tk.Frame(popup)
@@ -325,12 +324,18 @@ def adjust_setting(root, left_frame=None, right_frame=None):
             #Will convert appropriately to float or int
             try:
                 if "." in raw:
-                    new_values[setting] = float(raw)
+                    value = float(raw)
                 else:
-                    new_values[setting] = int(raw)
+                    value = int(raw)
             except ValueError:
                 show_error(f"Value for {setting} must be a number.", root)
                 return
+
+            if value < 0 and setting not in ("Action Buffer", "Power Buffer"):
+                show_error(f"{setting} can't be negative.", root)
+                return
+
+            new_values[setting] = value
 
         #Cleanup and reset page
         save_json("settings.json", new_values)
@@ -389,19 +394,17 @@ def add_member(root, left_frame=None, right_frame=None):
         class_val = values["class"].get().strip().title()
         level_val = values["level"].get()
 
-        class_val_input = class_val.lower()
-
-        for key, value in [("Name", name_val), ("Armor Class", ac_val), ("Magic Items", magic_items_val), ("Class", class_val), ("Level", level_val)]:
-            if value.strip() == "":
-                show_error("Missing a Value.", root)
-                return
-        try:
-            ac_val = int(ac_val)
-            magic_items_val = int(magic_items_val)
-            level_val = int(level_val)
-        except ValueError:
-            show_error("Armor Class, Magic Items, and Level must be non-decimal number.", root)
+        validation_list = [(name_val, str, "Name"), (status_val, str, "Status"), (ac_val, int, "Armor Class"), (magic_items_val, int, "Magic Item Count"), (class_val, str, "Character Class"), (level_val, int, "Class Level")]
+        val_result = validate_and_convert(validation_list, True, root)
+        if not val_result:
             return
+        name_val, status_val, ac_val, magic_items_val, class_val, level_val = val_result
+
+        if level_val <= 0:
+            show_error("Level must be greater than 0 when adding a character", root)
+            return
+
+        class_val_input = class_val.lower()
 
         if class_val_input in VALID_MAP:
             class_obj = VALID_MAP[class_val_input]
@@ -415,7 +418,7 @@ def add_member(root, left_frame=None, right_frame=None):
             new_player.add_class(class_obj, level_val)
             new_player.get_combat_value()
             new_player.get_action_count()
-            new_player.save_to_file()
+            new_player.save_to_file("party.json")
 
             from functions.pages import manage_party_page
             close_popup_and_refresh(popup, root, left_frame, right_frame, manage_party_page)
@@ -477,11 +480,14 @@ def delete_member(root, left_frame=None, right_frame=None):
 def update_member(root, left_frame=None, right_frame=None):
     players_list = load_json("party.json")
     camp_list = load_json("camp.json")
-    button_list = [p["name"] for p in players_list] + [c["name"] for c in camp_list]
+    button_list = [(p["name"], players_list) for p in players_list] + [(c["name"], camp_list) for c in camp_list]
 
     if not button_list:
         show_error("No characters in party or camp.", root)
         return
+
+    name_to_source = {name: source for name, source in button_list}
+
     popup_title = "Update Party Member"
     popup_label = "Which character would you like to update, and what?\nIf adding a multiclass, you can input that here under the Character Class and Level.\nIf a section does not need to be updated, it can be left blank!"
     popup_fields = [
@@ -489,154 +495,130 @@ def update_member(root, left_frame=None, right_frame=None):
             "key": "name",
             "label": "Name:",
             "type": "radio",
-            "options": button_list,
-            "default": button_list[0]
-        },
-        {
-            "key": "status",
-            "label": "Status:",
-            "type": "radio",
-            "options": ["Player", "NPC"],
-            "default": "Player"
-        },
-        {
-            "key": "ac",
-            "label": "Armor Class:",
-            "type": "entry"
-        },
-        {
-            "key": "items",
-            "label": "Combat Magic Item Count",
-            "type": "entry"
-        },
-        {
-            "key": "class",
-            "label": "Character Class:",
-            "type": "entry"
-        },
-        {
-            "key": "level",
-            "label": "Class Level:",
-            "type": "entry"
+            "options": list(name_to_source.keys()),
+            "default": next(iter(name_to_source))
         }
     ]
     popup, values = initiate_popup(root, popup_title, popup_label, popup_fields)
 
-    def on_submit():
+    def character_selected():
         name_val = values["name"].get().strip().title()
-        status_val = values["status"].get()
-        ac_val = values["ac"].get()
-        magic_items_val = values["items"].get()
-        class_val = values["class"].get().strip().title()
-        level_val = values["level"].get()
+        source_list = name_to_source[name_val]
 
-        if class_val:
-            class_val_input = class_val.lower()
-            if class_val_input not in VALID_MAP:
-                show_error(f"Invalid class. Must be one of: {', '.join(VALID_CLASSES)} (Not case sensitive).", root)
-                return
-            class_obj = VALID_MAP[class_val_input]
-        else:
-            class_obj = None
-
-        found = False
-        for player in players_list:
-            if player["name"].lower() == name_val.lower():
-                found = True
-                player_update = Player(name_val, player["armor_class"], player["magic_items"])
-                for cls in player["classes"]:
-                    class_name_lower = cls["name"].lower()
-                    if class_name_lower in VALID_MAP:
-                        class_type = VALID_MAP[class_name_lower]
-                    else:
-                        class_type = lambda level: CustomClass(cls["name"], level)
-                    player_update.add_class(class_type, cls["level"])
-                    player_update.status = status_val
-                if ac_val:
-                    try:
-                        player_update.armor_class = int(ac_val)
-                    except ValueError:
-                        show_error("Armor Class must be a number.", root)
-                        return
-                if magic_items_val:
-                    try:
-                        player_update.magic_items = int(magic_items_val)
-                    except ValueError:
-                        show_error("Magic Items must be a number.", root)
-                        return
-                if (class_val and not level_val) or (level_val and not class_val):
-                    show_error("If updating Class, both Class and Level must be provided.", root)
-                    return
-                if class_val:
-                    class_val_lower = class_val.lower()
-                    if not level_val or int(level_val) == 0:
-                        player_update.classes = [cls for cls in player_update.classes if cls.name.lower() != class_val_lower]
-                    else:
-                        if class_val_lower in [cls.name.lower() for cls in player_update.classes]:
-                            player_update.update_class_level(class_val, level_val)
-                        else:
-                            player_update.add_class(class_obj, level_val)
-
-                players_list.remove(player)
-                players_list.append(player_update.to_dict())
-
-                save_json("party.json", players_list)
-
-                from functions.pages import manage_party_page
-                close_popup_and_refresh(popup, root, left_frame, right_frame, manage_party_page)
+        for char in source_list:
+            if char["name"].lower() == name_val.lower():
+                current_char = char
+                classes = current_char.get("classes", [])
                 break
 
-        if not found:
-            found = False
-            for player in camp_list:
-                if player["name"].lower() == name_val.lower():
-                    found = True
-                    player_update = Player(name_val, player["armor_class"], player["magic_items"])
-                    for cls in player["classes"]:
-                        class_name_lower = cls["name"].lower()
-                        if class_name_lower in VALID_MAP:
-                            class_type = VALID_MAP[class_name_lower]
-                        else:
-                            # Use a lambda so add_class works the same way as other classes
-                            class_type = lambda level: CustomClass(cls["name"], level)
-                        player_update.add_class(class_type, cls["level"])
-                        player_update.status = status_val
-                    if ac_val:
-                        try:
-                            player_update.armor_class = int(ac_val)
-                        except ValueError:
-                            show_error("Armor Class must be a number.", root)
-                            return
-                    if magic_items_val:
-                        try:
-                            player_update.magic_items = int(magic_items_val)
-                        except ValueError:
-                            show_error("Magic Items must be a number.", root)
-                            return
-                    if (class_val and not level_val) or (level_val and not class_val):
-                        show_error("If updating Class, both Class and Level must be provided.", root)
-                        return
-                    if class_val and level_val:
-                        existing_classes = [cls.name.lower() for cls in player_update.classes]
-                        class_val_lower = class_val.lower()
-                        if class_val_lower in existing_classes:
-                            player_update.update_class_level(class_val, int(level_val))
-                        else:
-                            player_update.add_class(class_obj, int(level_val))
+        if classes:
+            first_class = classes[0]
+            class_name = first_class.get("name", "")
+            class_level = first_class.get("level", "")
+        else:
+            class_name = ""
+            class_level = ""
 
-                    camp_list.remove(player)
-                    camp_list.append(player_update.to_dict())
+        for w in popup.winfo_children():
+            w.destroy()
 
-                    save_json("camp.json", camp_list)
+        tk.Label(popup, text="Update character info\nTo multi-class, add a different class and level").pack(pady=10)
+        tk.Label(popup, text="Name:").pack(pady=(5, 0))
+        name_widget = tk.Entry(popup)
+        name_widget.pack(fill="x")
+        name_widget.insert(0, current_char["name"])
+        tk.Label(popup, text="Status:").pack(pady=(5, 0))
+        status_frame = tk.Frame(popup)
+        status_frame.pack(fill="x")
+        status_var = tk.StringVar()
+        status_var.set(current_char["status"])
+        for option in ("Player", "NPC"):
+            tk.Radiobutton(
+                status_frame,
+                text=option.title(),
+                variable=status_var,
+                value=option
+            ).pack()
+        tk.Label(popup, text="Armor Class:").pack(pady=(5, 0))
+        armor_widget = tk.Entry(popup)
+        armor_widget.pack(fill="x")
+        armor_widget.insert(0, current_char["armor_class"])
+        tk.Label(popup, text="Magic Items:").pack(pady=(5, 0))
+        magic_widget = tk.Entry(popup)
+        magic_widget.pack(fill="x")
+        magic_widget.insert(0, current_char["magic_items"])
+        tk.Label(popup, text="Character Class:").pack(pady=(5, 0))
+        class_widget = tk.Entry(popup)
+        class_widget.pack(fill="x")
+        class_widget.insert(0, class_name)
+        tk.Label(popup, text="Class Level:").pack(pady=(5, 0))
+        level_widget = tk.Entry(popup)
+        level_widget.pack(fill="x")
+        level_widget.insert(0, class_level)
+        
+        def on_submit():
+            name_val = name_widget.get().strip().title()
+            status_val = status_var.get()
+            armor_val = armor_widget.get()
+            magic_val = magic_widget.get()
+            class_val = class_widget.get().strip().title()
+            level_val = level_widget.get()
 
-                    from functions.pages import manage_party_page
-                    close_popup_and_refresh(popup, root, left_frame, right_frame, manage_party_page)
-                    break
-            if not found:
-                show_error(f"No player named '{name_val}' found in party.", root)
+            validation_list = [(name_val, str, "Name"), (status_val, str, "Status"), (armor_val, int, "Armor Class"), (magic_val, int, "Magic Items"), (class_val, str, "Class"), (level_val, int, "Level")]
+
+            results = validate_and_convert(validation_list, True, root)
+            if not results:
                 return
+            name_val, status_val, ac_val, magic_val, class_val, level_val = results
 
-    submit_buttons(root, popup, "Submit", on_submit)
+            if level_val == 0:
+                if len(classes) <= 1:
+                    show_error("At least one class must be level 1.", root)
+                    return
+                else:
+                    class_val_lower = class_val.lower()
+                    current_char["classes"] = [
+                        cls for cls in current_char["classes"]
+                        if cls["name"].lower() != class_val_lower
+                           ]
+
+            player_update = Player(
+                name_val,
+                ac_val,
+                magic_val,
+                status_val
+            )
+
+            for cls in current_char["classes"]:
+                cls_name_lower = cls["name"].lower()
+                if cls_name_lower in VALID_MAP:
+                    player_update.add_class(VALID_MAP[cls_name_lower], cls["level"])
+                else:
+                    player_update.add_class(lambda level: CustomClass(cls["name"], level), cls["level"])
+
+            if class_val and level_val > 0:
+                class_val_lower = class_val.lower()
+                existing_names = [c.name.lower() for c in player_update.classes]
+                if class_val_lower in existing_names:
+                    player_update.update_class_level(class_val, level_val)
+                else:
+                    if class_val_lower in VALID_MAP:
+                        player_update.add_class(VALID_MAP[class_val_lower], level_val)
+                    else:
+                        player_update.add_class(lambda lvl, n=class_val: CustomClass(n, lvl), level_val)
+
+            index = source_list.index(current_char)
+            source_list[index] = player_update.to_dict()
+
+            destination = "party.json" if source_list is players_list else "camp.json"
+
+            save_json(destination, source_list)
+            from functions.pages import manage_party_page
+            close_popup_and_refresh(popup, root, left_frame, right_frame, manage_party_page)
+
+        submit_buttons(root, popup, "Submit", on_submit)
+
+    submit_buttons(root, popup, "Choose", character_selected)
 
 def move_member(root, left_frame=None, right_frame=None):
     if config.party_flag == "Active":
