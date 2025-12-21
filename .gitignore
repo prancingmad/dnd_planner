@@ -2,3 +2,7 @@
 __pycache__/
 *.pyc
 testing.py
+.venv/
+build/
+dist/
+*.spec
