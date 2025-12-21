@@ -1,13 +1,37 @@
 {
+    "Los Angeles": {
+        "Region": "Los Angeles",
+        "Description": "Peeyew",
+        "Cities": [
+            {
+                "City": "Test (City)",
+                "Description": "1",
+                "Places": [],
+                "Shops": [],
+                "Persons of Interest": [],
+                "Notes": []
+            }
+        ],
+        "Points Of Interest": [],
+        "Notes": []
+    },
     "Chicago": {
         "Region": "Chicago",
         "Description": "It stink",
         "Cities": [
             {
-                "City": "Jellybeally (City)",
+                "City": "Jellybelly (City)",
                 "Description": "test",
                 "Places": [],
-                "Shops": [],
+                "Shops": [
+                    {
+                        "Name": "Test (Shop)",
+                        "Description": "s",
+                        "Notes": [],
+                        "Inventory": [],
+                        "People": []
+                    }
+                ],
                 "Persons of Interest": [],
                 "Notes": []
             }
@@ -31,12 +55,5 @@
                 "note": "This is note #2"
             }
         ]
-    },
-    "Los Angeles": {
-        "Region": "Los Angeles",
-        "Description": "Peeyew",
-        "Cities": [],
-        "Points Of Interest": [],
-        "Notes": []
     }
 }

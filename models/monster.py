@@ -1,5 +1,3 @@
-import config
-
 from functions.general import (
     load_json,
     save_json

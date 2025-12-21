@@ -13,7 +13,6 @@ from functions.generators import (
 
 def on_button_click(label, root, left_frame=None, right_frame=None):
     func = None
-
     if label.startswith("__CMD__:"):
         command = label.removeprefix("__CMD__:")
     else:
@@ -196,9 +195,9 @@ def on_button_click(label, root, left_frame=None, right_frame=None):
                 func = reset_settings
             case "Regions":
                 from functions.pages import dynamic_page_loader
-                navigate_to(command)
-                config.button_flag = command
-                func = dynamic_page_loader(command, root, left_frame, right_frame)
+                navigate_to("Regions")
+                config.button_flag = "Regions"
+                func = lambda r=root, lf=left_frame, rf=right_frame: dynamic_page_loader("Regions", r, lf, rf)
             case _:
                 print("Not implemented yet")
     else:

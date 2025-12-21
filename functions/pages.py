@@ -18,16 +18,6 @@ from config import (
     POI_BUTTON_LABELS,
     SHOP_BUTTON_LABELS
 )
-from text import (
-    MAIN_PAGE_BODY_TEXT,
-    MANAGE_PARTY_TEXT,
-    BESTIARY_PAGE_TEXT,
-    BESTIARY_PAGE_BODY_TEXT,
-    GENERATORS_PAGE_TEXT,
-    GENERATORS_PAGE_BODY_TEXT,
-    SETTINGS_TEXT,
-    REGIONS_TEXT,
-)
 from functions.general import (
     load_json,
     line_break,
@@ -63,16 +53,14 @@ def main_page(root, left_scroll_frame, right_scroll_frame):
 def manage_party_page(root, left_frame, right_frame):
     scroll_frame = initiate_page(root, left_frame, "Manage Party Page")
 
-    tk.Label(scroll_frame, text="Add Party Member", font=("Arial", 12, "bold")).pack(anchor="w")
+    tk.Label(scroll_frame, text="Party Member Management", font=("Arial", 12, "bold")).pack(anchor="w")
     tk.Label(scroll_frame, text="Adds a party member to the active party.").pack(anchor="w")
     tk.Label(scroll_frame, text="Power is calculated based off Level (modified by settings), armor class, items, and automatically applied").pack(anchor="w")
     tk.Label(scroll_frame, text="Action count is calculated at 1 per class, 0.5 for bonus action (1 for monks.) Classes that get extra attacks gain an extra 1.").pack(anchor="w")
     tk.Label(scroll_frame, text="Active - Party member power will be considered for generated encounters.").pack(anchor="w")
     tk.Label(scroll_frame, text="Camp - Party member power will not be considered for generated encounters, and just stored until use.")
-    tk.Label(scroll_frame, text="Update Party Member", font=("Arial", 12, "bold")).pack(anchor="w")
-    tk.Label(scroll_frame, text="Updates a party member's information. This can be used to multi-class if you add a different class.").pack(anchor="w")
-    tk.Label(scroll_frame, text="Delete Party Member", font=("Arial", 12, "bold")).pack(anchor="w")
-    tk.Label(scroll_frame, text="Deletes a party member from the party. This is a permanent action and can't be undone.").pack(anchor="w")
+    tk.Label(scroll_frame, text="Update will a party member's information. This can be used to multi-class if you add a different class.").pack(anchor="w")
+    tk.Label(scroll_frame, text="Deleting a party member from the party is a permanent action and can't be undone.").pack(anchor="w")
     tk.Label(scroll_frame, text="Move Member", font=("Arial", 12, "bold")).pack(anchor="w")
     tk.Label(scroll_frame, text="Moves a party member to/from camp.").pack(anchor="w")
     line_break(scroll_frame)
@@ -123,15 +111,13 @@ def manage_party_page(root, left_frame, right_frame):
 def manage_bestiary_page(root, left_frame, right_frame):
     scroll_frame = initiate_page(root, left_frame, "Bestiary Page")
 
-    tk.Label(scroll_frame, text="Add Monster", font=("Arial", 12, "bold")).pack(anchor="w")
+    tk.Label(scroll_frame, text="Monster Management", font=("Arial", 12, "bold")).pack(anchor="w")
     tk.Label(scroll_frame, text="Adds a monster to the bestiary").pack(anchor="w")
     tk.Label(scroll_frame, text="Required - Generators will use everything within the required first.").pack(anchor="w")
     tk.Label(scroll_frame, text="Random - Once filled with required, the generator will pull from random to compare against power/action count.").pack(anchor="w")
     tk.Label(scroll_frame, text="Archive - Creatures will not be used for generators, but stored for future use.").pack(anchor="w")
-    tk.Label(scroll_frame, text="Delete Monster", font=("Arial", 12, "bold")).pack(anchor="w")
-    tk.Label(scroll_frame, text="Deletes a party member from the bestiary. This is a permanent action and can't be undone.").pack(anchor="w")
-    tk.Label(scroll_frame, text="Move Monster", font=("Arial", 12, "bold")).pack(anchor="w")
-    tk.Label(scroll_frame, text="Moves a party member to/from camp.").pack(anchor="w")
+    tk.Label(scroll_frame, text="Deleting a monster from the bestiary is a permanent action and can't be undone.").pack(anchor="w")
+    tk.Label(scroll_frame, text="Move monster moves a monster between Required/Random/Archived.").pack(anchor="w")
     line_break(scroll_frame)
 
     required_data = load_json("required.json")
@@ -167,13 +153,17 @@ def manage_bestiary_page(root, left_frame, right_frame):
 def generators_page(root, left_frame, right_frame):
     scroll_frame = initiate_page(root, left_frame, "Generators Page")
 
-    placeholder_label = tk.Label(scroll_frame, text=GENERATORS_PAGE_BODY_TEXT, anchor="nw", justify="left", wraplength=scroll_frame.wrap_width)
-    placeholder_label.pack(fill=tk.BOTH, expand=True)
+    tk.Label(scroll_frame, text="Generate Encounter", font=("Arial", 12, "bold")).pack(anchor="w")
+    tk.Label(scroll_frame, text="Generates a balanced encounter based off the Required/Random Bestiary vs Active Party Members").pack(anchor="w")
+    tk.Label(scroll_frame, text="Generate Individual Loot", font=("Arial", 12, "bold")).pack(anchor="w")
+    tk.Label(scroll_frame, text="Generates gold drops from individual loot, based off DnD loot encounter tables").pack(anchor="w")
+    tk.Label(scroll_frame, text="Generate Treasure Hoard", font=("Arial", 12, "bold")).pack(anchor="w")
+    tk.Label(scroll_frame, text="Generates treasure hoard, based off DnD treasure hoard tables").pack(anchor="w")
 
     initiate_buttons(root, left_frame, right_frame, GENERATORS_BUTTON_LABELS)
 
 def settings_page(root, left_frame, right_frame):
-    scroll_frame = initiate_page(root, left_frame, "Settings Page", SETTINGS_TEXT)
+    scroll_frame = initiate_page(root, left_frame, "Settings Page")
 
     tk.Label(scroll_frame, text="Width and Height", font=("Arial", 12, "bold")).pack(anchor="w")
     tk.Label(scroll_frame, text="Adjusts base Width and Height. (This will only take effect after reload) ").pack(anchor="w")
@@ -208,8 +198,13 @@ def dynamic_page_loader(name, root, left_frame, right_frame):
         pass
     if name == "Regions":
         buttons = REGIONS_BUTTON_LABELS
-        header = REGIONS_TEXT
+        header = None
         def remaining_layout():
+            tk.Label(scroll_frame, text="Region Management", font=("Arial", 12, "bold")).pack(anchor="w")
+            tk.Label(scroll_frame, text="Add a new region, to dive in and make sub-information.").pack(anchor="w")
+            tk.Label(scroll_frame, text="Remove region will delete the region and all sub-information within. This action is permanent, and cannot be undone.").pack(anchor="w")
+            tk.Label(scroll_frame, text="Once Regions have been added, region navigation will appear and navigate further in.").pack(anchor="w")
+            line_break(scroll_frame)
             for region_name, region_data in data.items():
                 region_label = tk.Label(scroll_frame, text=region_name, font=("Arial", 12, "bold"), anchor="nw", justify="left", wraplength=scroll_frame.wrap_width)
                 region_label.pack(fill=tk.BOTH, expand=True)
@@ -223,6 +218,13 @@ def dynamic_page_loader(name, root, left_frame, right_frame):
         header = region_data["Description"]
         def remaining_layout():
             notes = region_data.get("Notes", [])
+            tk.Label(scroll_frame, text="Region Management", font=("Arial", 12, "bold")).pack(anchor="w")
+            tk.Label(scroll_frame, text=f"Update Description will update the name and description for {config.nav_stack[-1]}").pack(anchor="w")
+            tk.Label(scroll_frame, text="Use Notes to place information specific to this location.").pack(anchor="w")
+            tk.Label(scroll_frame, text="Use Add and Remove City for city management. Removal will remove the city and all information within, and is a permanent action.").pack(anchor="w")
+            tk.Label(scroll_frame, text="Use Add and Remove Point of Interest for places to travel to. Removal will remove the POI and all information within, and is a permanent action.").pack(anchor="w")
+            tk.Label(scroll_frame, text="Once Cities and POI have been added, region navigation will appear and navigate further in.").pack(anchor="w")
+            line_break(scroll_frame)
             if notes:
                 populate_info(region_data, "Notes", "note", 20, scroll_frame)
             cities = region_data.get("Cities", [])
@@ -247,6 +249,13 @@ def dynamic_page_loader(name, root, left_frame, right_frame):
                 header = item_data.get("Description", "")
 
                 def remaining_layout():
+                    tk.Label(scroll_frame, text="City Management", font=("Arial", 12, "bold")).pack(anchor="w")
+                    tk.Label(scroll_frame, text=f"Update Description will update the name and description for {config.nav_stack[-1]}").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Use Notes to place information specific to this location.").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Use Add and Remove Places for points of interest within the city. Removal will remove the place and all information within, and is a permanent action.").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Use Add and Remove Shops for shops to travel to. Removal will remove the shop and all information within, and is a permanent action.").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Once Places and Shops have been added, navigation will appear and navigate further in.").pack(anchor="w")
+                    line_break(scroll_frame)
                     notes = item_data.get("Notes", [])
                     if notes:
                         populate_info(item_data, "Notes", "note", 20, scroll_frame)
@@ -262,6 +271,11 @@ def dynamic_page_loader(name, root, left_frame, right_frame):
 
                 def remaining_layout():
                     notes = item_data.get("Notes", [])
+                    tk.Label(scroll_frame, text="Point of Interest Management", font=("Arial", 12, "bold")).pack(anchor="w")
+                    tk.Label(scroll_frame, text=f"Update Description will update the name and description for {config.nav_stack[-1]}").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Use Notes to place information specific to this location.").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Use Effects to place information regarding things that are affecting the place.").pack(anchor="w")
+                    line_break(scroll_frame)
                     if notes:
                         populate_info(item_data, "Notes", "note", 20, scroll_frame)
                     if item_data.get("Effects"):
@@ -276,6 +290,11 @@ def dynamic_page_loader(name, root, left_frame, right_frame):
 
                 def remaining_layout():
                     notes = place.get("Notes", [])
+                    tk.Label(scroll_frame, text="Place Management", font=("Arial", 12, "bold")).pack(anchor="w")
+                    tk.Label(scroll_frame, text=f"Update Description will update the name and description for {config.nav_stack[-1]}").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Use Notes to place information specific to this location.").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Use Effects to place information regarding things that are affecting the place.").pack(anchor="w")
+                    line_break(scroll_frame)
                     if notes:
                         populate_info(place, "Notes", "note", 20, scroll_frame)
                     effects = place.get("Effects", [])
@@ -292,6 +311,11 @@ def dynamic_page_loader(name, root, left_frame, right_frame):
 
                 def remaining_layout():
                     notes = shop.get("Notes", [])
+                    tk.Label(scroll_frame, text="Shop Management", font=("Arial", 12, "bold")).pack(anchor="w")
+                    tk.Label(scroll_frame, text=f"Update Description will update the name and description for {config.nav_stack[-1]}").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Use Notes to place information specific to this location.").pack(anchor="w")
+                    tk.Label(scroll_frame, text="Use Inventory management to manage inventory within for purchase.").pack(anchor="w")
+                    line_break(scroll_frame)
                     if notes:
                         populate_info(shop, "Notes", "note", 20, scroll_frame)
                     inventory = shop.get("Inventory", [])
@@ -301,7 +325,10 @@ def dynamic_page_loader(name, root, left_frame, right_frame):
                     if people:
                         populate_info(shop, "People", "Name", 20, scroll_frame)
 
-    scroll_frame = initiate_page(root, left_frame, f"{name} Page", header)
+    if header:
+        scroll_frame = initiate_page(root, left_frame, f"{name} Page", header)
+    else:
+        scroll_frame = initiate_page(root, left_frame, f"{name} Page")
 
     remaining_layout()
 

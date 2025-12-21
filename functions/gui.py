@@ -1,11 +1,8 @@
 import tkinter as tk
 import config
 
-from models.region import *
 from config import (
-    BUTTON_PACK_OPTIONS,
-    REGIONS_BUTTON_LABELS,
-    SPECIFIC_REGION_BUTTON_LABELS
+    BUTTON_PACK_OPTIONS
 )
 from functions.general import (
     load_json,
@@ -106,7 +103,6 @@ def initiate_buttons(root, left_scroll_frame, right_scroll_frame, labels):
             line_break(right_scroll_frame)
     line_break(right_scroll_frame)
     return right_scroll_frame
-
 
 def generate_buttons(root, left_scroll_frame, right_scroll_frame):
     from functions.onclick import on_button_click

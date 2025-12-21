@@ -1,5 +1,3 @@
-from unittest import case
-
 import config
 import tkinter as tk
 
@@ -19,13 +17,11 @@ from functions.general import (
     strip_type_suffix
 )
 from functions.gui import (
-    create_scrollable_frame,
     submit_buttons,
     close_popup_and_refresh,
     initiate_popup
 )
 from config import (
-    VALID_CLASSES,
     VALID_MAP
 )
 
@@ -1030,7 +1026,11 @@ def reset_settings(root, left_frame=None, right_frame=None):
 def update_description(name, root, left_frame=None, right_frame=None):
     data = load_json("regions.json")
     item_data = type_flags(name, data)
-    result = find_category(name, data)
+    if name in data:
+        result = ("Region", data[name])
+    else:
+        region_name = config.regions_flag
+        result = find_category(name, {region_name: data[region_name]})
     item_type = result[0]
     match item_type:
         case "Region":
@@ -1130,6 +1130,9 @@ def update_description(name, root, left_frame=None, right_frame=None):
 
         config.nav_stack[-1] = new_name
         config.button_flag = new_name
+
+        if level == "Region":
+            config.regions_flag = new_name
 
         item_data["Description"] = new_text
         save_json("regions.json", data)
