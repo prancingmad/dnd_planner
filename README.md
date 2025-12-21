@@ -76,7 +76,9 @@ pyinstaller --onefile --windowed --add-data "jsons;jsons" main.py
 
 ## Screenshots
 
-
+![Main Page](screenshots/mainpage.png)
+![Party Management](screenshots/partypage.png)
+![Bestiary](screenshots/regions.png)
 
 ```markdown
 ![Main Page](screenshots/main_page.png)
